@@ -9,6 +9,16 @@ interface AmountProps extends UIProps.Div {
   symbol: string;
 }
 
+export default function Amount({ balance, symbol }: AmountProps) {
+  return (
+    <div className={s.amount_container}>
+      {displayOverUnderDecimal(balance)}
+      <div className={s.amount_balance}>{formatBalance(balance)}</div>
+      <div className={s.amount_symbol}>{formatSymbol(symbol)}</div>
+    </div>
+  );
+}
+
 function displayOverUnderDecimal(balance: string) {
   if (Number(balance) > 9999999) {
     return <Image src={OverAmount} alt="overAmount" width={13} height={13} className={s.amount_overUnderDecimal} />;
@@ -68,14 +78,4 @@ function formatSymbol(symbol: string) {
   } else {
     return `${symbol.substring(0, 5)}...`;
   }
-}
-
-export default function Amount({ balance, symbol }: AmountProps) {
-  return (
-    <div className={s.amount_container}>
-      {displayOverUnderDecimal(balance)}
-      <div className={s.amount_balance}>{formatBalance(balance)}</div>
-      <div className={s.amount_symbol}>{formatSymbol(symbol)}</div>
-    </div>
-  );
 }
