@@ -1,0 +1,26 @@
+@import '@/styles/_fonts.scss';
+
+.amount_container {
+  display: flex;
+  width: 120px;
+  justify-content: flex-end;
+  align-items: flex-end;
+  //   gap: 3px;
+}
+
+.amount_overUnderDecimal {
+  margin-right: 1px;
+}
+
+.amount_balance {
+  color: var(--Black-Black---14);
+  @extend %medium_L;
+  margin-right: 3px;
+}
+
+.amount_symbol {
+  color: var(--Black-Black---08);
+  @extend %regular_S;
+
+  padding: 2px 0px;
+}

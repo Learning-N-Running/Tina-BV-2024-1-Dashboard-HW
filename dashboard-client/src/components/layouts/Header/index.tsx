@@ -3,12 +3,15 @@ import Tab from '@/components/atoms/navbar/Tab';
 import WalletConnectStatus from '@/components/atoms/navbar/WalletConnectStatus';
 import { StatusToast } from '@/components/popups/Toast/StatusToast';
 import useUpdateUserInfo from '@/hooks/useUpdateUserInfo';
+import { getCookie, removeCookie, setCookie } from '@/libs/cookie';
 import { TabType } from '@/libs/types';
+import { COOKIE_KEY } from '@/libs/types';
+import { validateWalletNetwork } from '@/libs/validator';
 import Error from '@/public/assets/Error.png';
 import Success from '@/public/assets/Success.png';
-import { ToastContext } from '@/store/GlobalContext';
+import { ToastContext, WalletContext } from '@/store/GlobalContext';
 import { useFetchUser } from '@graphql/client';
-import { useCallback, useContext, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 
 /* 
   [HW 1-3] 지갑 연결 기능 개발하기
@@ -19,6 +22,7 @@ export default function Header() {
   const [, setToast] = useContext(ToastContext);
 
   const [isFetching, setIsFetching] = useState(false);
+  const { wallet, connect, disconnect } = useContext(WalletContext);
 
   /* 
     아래 함수는 서버로부터 가져온 사용자의 자산 정보를 전역 상태(Global state)에 저장하거나, 초기화하는 함수입니다. 
@@ -55,6 +59,23 @@ export default function Header() {
     [fetchUser, updateUserInfo]
   );
 
+  const handleWalletConnect = async () => {
+    if (wallet) {
+      await disconnect({ label: wallet?.label });
+      removeCookie(COOKIE_KEY.WALLET_ADDRESS, {});
+      removeCookie(COOKIE_KEY.CHAIN_ID, {});
+    } else {
+      await connect();
+      const walletAddress = wallet!?.accounts[0].address;
+      const chainId = wallet!?.chains[0].id;
+      if (validateWalletNetwork(walletAddress, chainId)) {
+        setCookie(COOKIE_KEY.WALLET_ADDRESS, walletAddress, new Date(Date.now() + 1000 * 60 * 60 * 24), {});
+        setCookie(COOKIE_KEY.CHAIN_ID, chainId, new Date(Date.now() + 1000 * 60 * 60 * 24), {});
+        handleFetchUser(walletAddress);
+      }
+    }
+  };
+
   return (
     <div className={s.header}>
       <div className={s.navbar}>
@@ -64,9 +85,11 @@ export default function Header() {
         </div>
         <WalletConnectStatus
           isFetching={isFetching}
-          walletAddress={'0x4950631e0D68A9E9E53b9466f50dCE161F88e42d'}
-          chainId={'0xaa36a7'} // Sepolia Testnet의 id입니다.
-          onWalletConnect={() => {}}
+          walletAddress={wallet ? wallet!?.accounts[0].address : ''}
+          chainId={wallet ? wallet!?.chains[0].id : ''}
+          onWalletConnect={() => {
+            handleWalletConnect();
+          }}
         />
       </div>
       <div className={s.divider_container}>

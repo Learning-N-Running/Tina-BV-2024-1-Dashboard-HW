@@ -1,0 +1,45 @@
+@import '@/styles/_fonts.scss';
+
+.address_container {
+  display: flex;
+  width: 120px;
+  align-items: center;
+  gap: 5px;
+}
+
+.address {
+  color: var(--Black-Black---14);
+  @extend %medium_M;
+}
+
+.status_container_deposit {
+  width: 50px;
+  border-radius: 12.5px;
+  background: var(--Blue-Main-Blue---01);
+
+  color: var(--Black-Black---14);
+  @extend %medium_M;
+  text-align: center;
+  padding: 4px 0px;
+  box-sizing: border-box;
+}
+
+.status_container_withdraw {
+  width: 50px;
+  border-radius: 12.5px;
+  background: var(--Pink-Sub-Pink---02);
+
+  color: var(--Black-Black---14);
+  @extend %medium_M;
+  text-align: center;
+  padding: 4px 0px;
+  box-sizing: border-box;
+}
+
+.addressContainer_container {
+  width: 190px;
+  gap: 20px;
+
+  display: flex;
+  align-items: center;
+}

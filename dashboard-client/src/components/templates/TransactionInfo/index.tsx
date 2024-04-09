@@ -13,34 +13,41 @@ import { useContext } from 'react';
 
 export default function TransactionsInfo() {
   const [userTransactions] = useContext(UserTransactionsContext);
+  const { wallet, connect, disconnect } = useContext(WalletContext);
 
   return (
     <div className={s.info}>
       <div className={s.title}>거래 기록</div>
       <div className={s.container}>
         <TransactionsInfoHeader></TransactionsInfoHeader>
-        <div className={s.transaction_list}>
-          {userTransactions.length === 0 ? (
-            <div className={s.notice_container}>
-              <Notice noticeType={NoticeType.NO_TRANSACTION}></Notice>
-            </div>
-          ) : (
-            userTransactions.map((userTransaction) => {
-              return (
-                <SingleTransactionInfo
-                  key={userTransaction.transactionHash}
-                  assetAddress={userTransaction.assetInfo.address}
-                  symbol={userTransaction.assetInfo.symbol}
-                  name={userTransaction.assetInfo.name}
-                  targetAddress={userTransaction.targetAddress}
-                  status={userTransaction.status}
-                  amount={userTransaction.transferAmount}
-                  timestamp={userTransaction.timestamp}
-                ></SingleTransactionInfo>
-              );
-            })
-          )}
-        </div>
+        {wallet ? (
+          <div className={s.transaction_list}>
+            {userTransactions.length === 0 ? (
+              <div className={s.notice_container}>
+                <Notice noticeType={NoticeType.NO_TRANSACTION}></Notice>
+              </div>
+            ) : (
+              userTransactions.map((userTransaction) => {
+                return (
+                  <SingleTransactionInfo
+                    key={userTransaction.transactionHash}
+                    assetAddress={userTransaction.assetInfo.address}
+                    symbol={userTransaction.assetInfo.symbol}
+                    name={userTransaction.assetInfo.name}
+                    targetAddress={userTransaction.targetAddress}
+                    status={userTransaction.status}
+                    amount={userTransaction.transferAmount}
+                    timestamp={userTransaction.timestamp}
+                  ></SingleTransactionInfo>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          <div className={s.notice_container}>
+            <Notice noticeType={NoticeType.TRANSACTION_WALLET_NOT_CONNECTED}></Notice>
+          </div>
+        )}
       </div>
     </div>
   );

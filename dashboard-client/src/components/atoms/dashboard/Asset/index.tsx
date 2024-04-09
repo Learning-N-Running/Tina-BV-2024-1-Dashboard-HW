@@ -18,6 +18,18 @@ export interface AssetProps extends UIProps.Div {
   name: string;
 }
 
+export default function Asset({ address, symbol, name }: AssetProps) {
+  return (
+    <div className={s.asset_container}>
+      {getLogo(address)}
+      <div className={s.asset}>
+        <div className={s.asset_symbol}>{symbol}</div>
+        <div className={s.asset_name}>{name}</div>
+      </div>
+    </div>
+  );
+}
+
 export function getLogo(address: string) {
   if (address === ethers.constants.AddressZero) {
     return <Image src={Ethereum} alt="ethereum" width={28} height={28} />;
@@ -34,21 +46,9 @@ export function getLogo(address: string) {
       return <Image src={Unknown4} alt="unknown4" width={28} height={28} />;
     case 5:
       return <Image src={Unknown5} alt="unknown5" width={28} height={28} />;
-    case 5:
+    case 6:
       return <Image src={Unknown6} alt="unknown6" width={28} height={28} />;
     default:
       return <Image src={Unknown7} alt="unknown7" width={28} height={28} />;
   }
-}
-
-export default function Asset({ address, symbol, name }: AssetProps) {
-  return (
-    <div className={s.asset_container}>
-      {getLogo(address)}
-      <div className={s.asset}>
-        <div className={s.asset_symbol}>{symbol}</div>
-        <div className={s.asset_name}>{name}</div>
-      </div>
-    </div>
-  );
 }
