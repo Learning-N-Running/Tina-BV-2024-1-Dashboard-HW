@@ -1,5 +1,7 @@
 import { Address, AddressContainer, Status } from '@/components/atoms/dashboard/AddressStatus';
 import Amount from '@/components/atoms/dashboard/Amount';
+import CustomDate from '@/components/atoms/dashboard/Date';
+import SingleTransactionInfo from '@/components/organs/SingleTransactionInfo';
 import Popup from '@/components/popups';
 
 export default function Home() {
@@ -12,6 +14,8 @@ export default function Home() {
         <Status status={'입금'} />
         <Status status={'출금'} />
         <AddressContainer />
+        <CustomDate />
+        <SingleTransactionInfo assetAddress={''} symbol={''} name={''} targetAddress={''} amount={''} timestamp={0} />
       </div>
     </>
   );
