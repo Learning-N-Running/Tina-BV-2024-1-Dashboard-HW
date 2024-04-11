@@ -8,7 +8,11 @@ import { ToastContext } from '@/store/GlobalContext';
 import copy from 'copy-to-clipboard';
 import { useContext } from 'react';
 
-export function Address({ address }: { address: string }) {
+interface AddressProps {
+  address: string;
+}
+
+export function Address({ address }: AddressProps) {
   const [, setToast] = useContext(ToastContext);
   return (
     <div className={s.address_container}>
@@ -35,11 +39,16 @@ export function Status({ status }: { status: string }) {
   }
 }
 
-export function AddressContainer() {
+interface SingleAssetInfoProps {
+  address: string;
+  status: string;
+}
+
+export default function AddressContainer({ address, status }: SingleAssetInfoProps) {
   return (
     <div className={s.addressContainer_container}>
-      <Address address="0xh895fAD9Ee306551590E81799C49e576f6e57c8D" />
-      <Status status={'입금'} />
+      <Address address={address} />
+      <Status status={status} />
     </div>
   );
 }
