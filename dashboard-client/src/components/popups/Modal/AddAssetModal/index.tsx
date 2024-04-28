@@ -12,9 +12,9 @@ import { ERC20_ABI, getProvider } from '@/libs/utils';
 import { ValidateState } from '@/libs/validator';
 import ErrorIcon from '@/public/assets/Error.png';
 import SuccessIcon from '@/public/assets/Success.png';
-import { ModalContext, ToastContext, WalletContext } from '@/store/GlobalContext';
+import { ModalContext, ToastContext, UserAssetsContext, WalletContext } from '@/store/GlobalContext';
 import { useCreateAsset } from '@graphql/client';
-import { BigNumber, ethers } from 'ethers';
+import { ethers } from 'ethers';
 import { useContext, useEffect, useRef, useState } from 'react';
 
 /* 
@@ -39,6 +39,7 @@ export default function AddAssetModal() {
   const { wallet } = useContext(WalletContext);
   const walletProvider = wallet?.provider;
   const provider = getProvider(walletProvider!);
+  const [userAssets, setUserAssets] = useContext(UserAssetsContext);
   const [isNeedtoCheckAsset, setIsNeedtoCheckAsset] = useState(false);
   const [assetStatus, setAssetStatus] = useState<assetStatusT>('searching');
   const [assetInfo, setAssetInfo] = useState<assetInfoT>({
@@ -49,13 +50,15 @@ export default function AddAssetModal() {
     decimal: 0,
   });
 
+  console.log(userAssets);
+
   const assetChecker = (address: string) => {
     // 적절한 Ethereum 주소 형식이 아닌 경우(1차 컨트랙트 검증)
     if (!ethers.utils.isAddress(address)) {
       setAssetStatus('nonExist');
       return false;
     }
-    // 2차 검증
+    // 2차 검증을 위한 state 변경
     setIsNeedtoCheckAsset(true);
     return true;
   };
@@ -124,13 +127,7 @@ export default function AddAssetModal() {
             );
 
           case 'nonExist':
-            return (
-              <div className={s.modal_sub_info}>
-                <div className={s.sub_info_error_title}>
-                  자산을 찾을 수 없어요. 입력하신 주소가 맞는지 다시 한 번 확인해 주세요.
-                </div>
-              </div>
-            );
+            return <></>;
         }
       }
     }
@@ -189,10 +186,16 @@ export default function AddAssetModal() {
             address: input,
             symbol: await tokenContract.symbol(),
             name: await tokenContract.name(),
-            balance: Number(await tokenContract.balanceOf(input)),
+            balance: Number(await tokenContract.balanceOf(getCookie(COOKIE_KEY.WALLET_ADDRESS, {}))),
             decimal: Number(await tokenContract.decimals()),
           });
           setAssetStatus('exist');
+          for (const userAsset of userAssets) {
+            if (userAsset.assetInfo.address === input) {
+              setAssetStatus('alreadyAdded');
+              break;
+            }
+          }
         } catch (error) {
           setAssetStatus('nonExist');
         }
@@ -243,6 +246,8 @@ export default function AddAssetModal() {
                   },
                 },
               });
+              setModal(null);
+              location.reload(); // 페이지 새로고침
               const createAssetInfo = response.data?.createAsset;
               console.log(createAssetInfo);
               if (!createAssetInfo) throw new Error();
