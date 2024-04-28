@@ -2,6 +2,7 @@ import s from './index.module.scss';
 import BaseButton from '@/components/atoms/button/BaseButton';
 import Amount from '@/components/atoms/dashboard/Amount';
 import Asset from '@/components/atoms/dashboard/Asset';
+import { ethers } from 'ethers';
 
 export interface SingleAssetInfoProps {
   address: string;
@@ -19,7 +20,9 @@ export default function SingleAssetInfo(props: SingleAssetInfoProps) {
       <Asset address={props.address} symbol={props.symbol} name={props.name} />
       <Amount balance={props.balance} symbol={props.symbol} />
       {props.isEdit ? (
-        <BaseButton name="삭제" onClick={props.onRemoveAsset} assert={true} style={{ marginLeft: '12px' }} />
+        props.address !== ethers.constants.AddressZero && (
+          <BaseButton name="삭제" onClick={props.onRemoveAsset} assert={true} style={{ marginLeft: '12px' }} />
+        )
       ) : (
         <BaseButton name="보내기" onClick={props.onSendAsset} />
       )}
