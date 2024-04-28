@@ -5,7 +5,8 @@ import SingleAssetInfo from '@/components/organs/SingleAssetInfo';
 import AddAssetModal from '@/components/popups/Modal/AddAssetModal';
 import SendAssetModal from '@/components/popups/Modal/SendAssetModal';
 import { StatusToast } from '@/components/popups/Toast/StatusToast';
-import { NoticeType } from '@/libs/types';
+import { getCookie } from '@/libs/cookie';
+import { COOKIE_KEY, NoticeType } from '@/libs/types';
 import ErrorIcon from '@/public/assets/Error.png';
 import SuccessIcon from '@/public/assets/Success.png';
 import { ModalContext, ToastContext, UserAssetsContext, WalletContext } from '@/store/GlobalContext';
@@ -62,7 +63,10 @@ export default function AssetsInfo() {
   */
   const handleRemoveAsset = async (assetAddress: string) => {
     /* 서버로 삭제하고자 하는 자산 정보를 보내는 코드예요. */
-    // await deleteAsset({ variables: { input: { userWalletAddress: /* 값 추가 */, address: /* 값 추가 */ } } });
+    await deleteAsset({
+      variables: { input: { userWalletAddress: getCookie(COOKIE_KEY.WALLET_ADDRESS, {}), address: assetAddress } },
+    });
+    location.reload();
   };
 
   /// ///////////////////////////////////////////////////////////////////////////////////////
@@ -91,7 +95,7 @@ export default function AssetsInfo() {
                 balance={etherBalance}
                 isEdit={isEdit}
                 onSendAsset={() => handleSendAsset(etherInfo, etherBalance)}
-                onRemoveAsset={() => handleRemoveAsset(ethers.constants.AddressZero)}
+                onRemoveAsset={() => {}}
               />
               {userAssets &&
                 userAssets.length > 0 &&

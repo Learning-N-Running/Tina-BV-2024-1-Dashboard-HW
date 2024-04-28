@@ -127,7 +127,7 @@ export default function AddAssetModal() {
             );
 
           case 'nonExist':
-            return <></>;
+            return;
         }
       }
     }
