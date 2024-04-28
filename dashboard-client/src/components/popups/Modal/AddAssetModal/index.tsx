@@ -2,13 +2,20 @@ import { StatusToast } from '../../Toast/StatusToast';
 import Modal from '../index';
 import s from './index.module.scss';
 import BaseButton from '@/components/atoms/button/BaseButton';
+import Amount from '@/components/atoms/dashboard/Amount';
+import Asset from '@/components/atoms/dashboard/Asset';
 import TextField from '@/components/atoms/inputs/TextField';
 import useInputValidation from '@/hooks/useInputValidation';
+import { getCookie } from '@/libs/cookie';
+import { COOKIE_KEY } from '@/libs/types';
+import { ERC20_ABI, getProvider } from '@/libs/utils';
+import { ValidateState } from '@/libs/validator';
 import ErrorIcon from '@/public/assets/Error.png';
 import SuccessIcon from '@/public/assets/Success.png';
-import { ModalContext, ToastContext } from '@/store/GlobalContext';
+import { ModalContext, ToastContext, WalletContext } from '@/store/GlobalContext';
 import { useCreateAsset } from '@graphql/client';
-import { useContext, useEffect, useRef } from 'react';
+import { BigNumber, ethers } from 'ethers';
+import { useContext, useEffect, useRef, useState } from 'react';
 
 /* 
   [HW 2-1] 자산 추가 기능 개발하기 
@@ -17,16 +24,117 @@ import { useContext, useEffect, useRef } from 'react';
 */
 
 export default function AddAssetModal() {
+  type assetStatusT = 'nonExist' | 'exist' | 'alreadyAdded' | 'searching';
+  type assetInfoT = {
+    address: string;
+    symbol: string;
+    name: string;
+    balance: number;
+    decimal: number;
+  };
   const [, setModal] = useContext(ModalContext);
   const [, setToast] = useContext(ToastContext);
 
   const ref = useRef<HTMLInputElement>(null);
+  const { wallet } = useContext(WalletContext);
+  const walletProvider = wallet?.provider;
+  const provider = getProvider(walletProvider!);
+  const [isNeedtoCheckAsset, setIsNeedtoCheckAsset] = useState(false);
+  const [assetStatus, setAssetStatus] = useState<assetStatusT>('searching');
+  const [assetInfo, setAssetInfo] = useState<assetInfoT>({
+    address: '',
+    symbol: '',
+    name: '',
+    balance: 0,
+    decimal: 0,
+  });
+
+  const assetChecker = (address: string) => {
+    // 적절한 Ethereum 주소 형식이 아닌 경우(1차 컨트랙트 검증)
+    if (!ethers.utils.isAddress(address)) {
+      setAssetStatus('nonExist');
+      return false;
+    }
+    // 2차 검증
+    setIsNeedtoCheckAsset(true);
+    return true;
+  };
 
   /* 
     아래 코드는 입력값을 검증하는 로직을 포함하는 커스텀 훅이예요. 필요하다면 사용해도 좋아요. 
   */
-  const { input, isValidInput, inputChangeHandler } =
-    useInputValidation(/* 입력값 검증 함수 - () => boolean 타입이어야 해요. */);
+  const { input, isValidInput, inputChangeHandler } = useInputValidation(assetChecker);
+
+  const getSubInfo = (state: ValidateState) => {
+    if (input.length !== 0) {
+      if (state === ValidateState.VALIDATED) {
+        switch (assetStatus) {
+          case 'searching':
+            return (
+              <div className={s.modal_sub_info}>
+                <div className={s.sub_info_title}>입력하신 자산을 네트워크에서 찾고 있어요.</div>
+              </div>
+            );
+          case 'nonExist':
+            return (
+              <div className={s.modal_sub_info}>
+                <div className={s.sub_info_error_title}>
+                  자산을 찾을 수 없어요. 입력하신 주소가 맞는지 다시 한 번 확인해 주세요.
+                </div>
+              </div>
+            );
+          case 'exist':
+            // 적절한 자산 주소
+            return (
+              <div className={s.modal_sub_info}>
+                <div className={s.sub_info_title}>입력하신 자산이 맞나요?</div>
+                <div className={s.sub_info_content}>
+                  <Asset address={assetInfo.address} symbol={assetInfo.symbol} name={assetInfo.name} />
+                  <Amount
+                    balance={ethers.utils.formatUnits(assetInfo.balance, assetInfo.decimal)}
+                    symbol={assetInfo.symbol}
+                  />
+                </div>
+              </div>
+            );
+          case 'alreadyAdded':
+            // 이미 추가된 자산 주소
+            return (
+              <div className={s.modal_sub_info}>
+                <div className={s.sub_info_error_title}>이미 지갑에 추가된 자산이예요.</div>
+                <div className={s.sub_info_content}>
+                  <Asset address={assetInfo.address} symbol={assetInfo.symbol} name={assetInfo.name} />
+                  <Amount
+                    balance={ethers.utils.formatUnits(assetInfo.balance, assetInfo.decimal)}
+                    symbol={assetInfo.symbol}
+                  />
+                </div>
+              </div>
+            );
+        }
+      } else if (state === ValidateState.ERROR) {
+        switch (assetStatus) {
+          case 'searching':
+            return (
+              <div className={s.modal_sub_info}>
+                <div className={s.sub_info_title} style={{ color: '#656565' }}>
+                  입력하신 자산을 네트워크에서 찾고 있어요.
+                </div>
+              </div>
+            );
+
+          case 'nonExist':
+            return (
+              <div className={s.modal_sub_info}>
+                <div className={s.sub_info_error_title}>
+                  자산을 찾을 수 없어요. 입력하신 주소가 맞는지 다시 한 번 확인해 주세요.
+                </div>
+              </div>
+            );
+        }
+      }
+    }
+  };
 
   /* 
     아래 코드는 추가하고자 하는 자산의 검증이 완료되었을 시, 서버로 추가하고자 하는 자산 정보를 보내는 코드예요.
@@ -69,6 +177,31 @@ export default function AddAssetModal() {
     }
   }, []);
 
+  useEffect(() => {
+    /**
+     * checkAsset: 2차 컨트랙트 검증 함수
+     */
+    async function checkAsset() {
+      if (isNeedtoCheckAsset) {
+        const tokenContract = new ethers.Contract(input, ERC20_ABI, provider);
+        try {
+          setAssetInfo({
+            address: input,
+            symbol: await tokenContract.symbol(),
+            name: await tokenContract.name(),
+            balance: Number(await tokenContract.balanceOf(input)),
+            decimal: Number(await tokenContract.decimals()),
+          });
+          setAssetStatus('exist');
+        } catch (error) {
+          setAssetStatus('nonExist');
+        }
+        setIsNeedtoCheckAsset(false);
+      }
+    }
+    checkAsset();
+  }, [isNeedtoCheckAsset, getSubInfo, assetStatus]);
+
   return (
     <Modal>
       <div className={s.add_asset_modal}>
@@ -77,12 +210,13 @@ export default function AddAssetModal() {
           <TextField
             placeholder="여기에 자산 주소를 입력하세요."
             ref={ref}
-            value={''}
-            error={false}
-            onChange={() => {}}
+            value={input}
+            error={input.length !== 0 && !ethers.utils.isAddress(input)}
+            onChange={inputChangeHandler}
           />
         </div>
-        <div className={s.modal_sub_info}>{/* 코드 추가 */}</div>
+        {getSubInfo(isValidInput)}
+        <div style={{}}></div>
         <div className={s.modal_buttons}>
           <BaseButton
             assert={false}
@@ -91,7 +225,29 @@ export default function AddAssetModal() {
               setModal(null);
             }}
           ></BaseButton>
-          <BaseButton assert={true} name="추가하기" disabled={false} onClick={() => {}}></BaseButton>
+          <BaseButton
+            assert={true}
+            name="추가하기"
+            disabled={!(assetStatus === 'exist')}
+            onClick={async () => {
+              const response = await createAsset({
+                variables: {
+                  input: {
+                    userWalletAddress: getCookie(COOKIE_KEY.WALLET_ADDRESS, {}),
+                    address: assetInfo.address,
+                    type: 'TOKEN',
+                    name: assetInfo.name,
+                    symbol: assetInfo.symbol,
+                    decimal: assetInfo.decimal,
+                    balance: assetInfo.balance.toString(),
+                  },
+                },
+              });
+              const createAssetInfo = response.data?.createAsset;
+              console.log(createAssetInfo);
+              if (!createAssetInfo) throw new Error();
+            }}
+          ></BaseButton>
         </div>
       </div>
     </Modal>
