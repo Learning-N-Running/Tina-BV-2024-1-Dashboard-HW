@@ -181,6 +181,7 @@ export default function AddAssetModal() {
     async function checkAsset() {
       if (isNeedtoCheckAsset) {
         const tokenContract = new ethers.Contract(input, ERC20_ABI, provider);
+        console.log(tokenContract.symbol());
         try {
           setAssetInfo({
             address: input,
